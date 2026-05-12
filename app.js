@@ -10,7 +10,8 @@ const state = {
   currentTab: "shopping",
   records: {
     shopping: [],
-    todo: []
+    todo: [],
+    fridge: []
   }
 };
 
@@ -21,16 +22,20 @@ const el = {
   passcode: document.getElementById("passcode"),
   gateError: document.getElementById("gate-error"),
   statusChip: document.getElementById("status-chip"),
-  tabButtons: Array.from(document.querySelectorAll(".tab-button")),
+  tabSelect: document.getElementById("tab-select"),
   panels: Array.from(document.querySelectorAll(".panel")),
   shoppingList: document.getElementById("shopping-list"),
   todoList: document.getElementById("todo-list"),
+  fridgeList: document.getElementById("fridge-list"),
   shoppingEmpty: document.getElementById("shopping-empty"),
   todoEmpty: document.getElementById("todo-empty"),
+  fridgeEmpty: document.getElementById("fridge-empty"),
   shoppingToggleAdd: document.getElementById("shopping-toggle-add"),
   todoToggleAdd: document.getElementById("todo-toggle-add"),
+  fridgeToggleAdd: document.getElementById("fridge-toggle-add"),
   shoppingAddForm: document.getElementById("shopping-add-form"),
-  todoAddForm: document.getElementById("todo-add-form")
+  todoAddForm: document.getElementById("todo-add-form"),
+  fridgeAddForm: document.getElementById("fridge-add-form")
 };
 
 function setHidden(node, shouldHide) {
@@ -51,11 +56,9 @@ function setBusy(isBusy, statusWhenBusy = "Loading") {
     setStatus(statusWhenBusy);
   }
   el.app.classList.toggle("busy", isBusy);
-  el.tabButtons.forEach((btn) => {
-    btn.disabled = isBusy;
-  });
+  el.tabSelect.disabled = isBusy;
 
-  for (const form of [el.shoppingAddForm, el.todoAddForm]) {
+  for (const form of [el.shoppingAddForm, el.todoAddForm, el.fridgeAddForm]) {
     for (const node of form.querySelectorAll("input, select, button")) {
       node.disabled = isBusy;
     }
@@ -87,6 +90,18 @@ function sortByNewest(items) {
   });
 }
 
+const FRIDGE_STATUSES = ["Ready to Eat", "In Fridge", "Freezer", "Pantry", "Used"];
+const STATUS_ORDER = { "Ready to Eat": 0, "In Fridge": 1, "Freezer": 2, "Pantry": 3 };
+
+function sortFridgeRecords(items) {
+  return [...items].sort((a, b) => {
+    const orderA = STATUS_ORDER[a.status] ?? 99;
+    const orderB = STATUS_ORDER[b.status] ?? 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+  });
+}
+
 function getOwnerLabel(tab) {
   return tab === "shopping" ? "Author" : "Assigned";
 }
@@ -115,6 +130,23 @@ function parseRecords(payload) {
       };
     })
     .filter((item) => item.id && item.description && APP_CONFIG.owners.includes(item.owner) && !item.completed);
+}
+
+function parseFridgeRecords(payload) {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+
+  return payload
+    .map((item) => ({
+      id: String(item.id || item.Id || item.ID || ""),
+      description: String(item.description || item.Description || "").trim(),
+      owner: String(item.owner || item.Owner || item.author || item.Author || "").trim(),
+      status: String(item.status || item.Status || "In Fridge").trim(),
+      createdAt: item.createdAt || item.CreatedAt || "",
+      updatedAt: item.updatedAt || item.UpdatedAt || ""
+    }))
+    .filter((item) => item.id && item.description && APP_CONFIG.owners.includes(item.owner) && item.status !== "Used");
 }
 
 async function hashText(value) {
@@ -156,13 +188,15 @@ async function apiRequest(action, payload = {}) {
 async function loadRecords() {
   setBusy(true, "Loading");
   try {
-    const [shoppingRes, todoRes] = await Promise.all([
+    const [shoppingRes, todoRes, fridgeRes] = await Promise.all([
       apiRequest("listRecords", { listType: "shopping" }),
-      apiRequest("listRecords", { listType: "todo" })
+      apiRequest("listRecords", { listType: "todo" }),
+      apiRequest("listRecords", { listType: "fridge" })
     ]);
 
     state.records.shopping = sortByNewest(parseRecords(shoppingRes.records));
     state.records.todo = sortByNewest(parseRecords(todoRes.records));
+    state.records.fridge = sortFridgeRecords(parseFridgeRecords(fridgeRes.records));
 
     renderAll();
     setStatus("Synced");
@@ -180,9 +214,7 @@ function togglePanel(tab) {
   }
 
   state.currentTab = tab;
-  el.tabButtons.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.tab === tab);
-  });
+  el.tabSelect.value = tab;
   el.panels.forEach((panel) => {
     setHidden(panel, panel.dataset.panel !== tab);
   });
@@ -224,6 +256,45 @@ function buildRecordItem(tab, record) {
   return li;
 }
 
+function buildFridgeItem(record) {
+  const li = document.createElement("li");
+  li.className = "record-item";
+
+  const statusSelect = document.createElement("select");
+  statusSelect.className = "fridge-status-select";
+  statusSelect.setAttribute("aria-label", `Status for ${record.description}`);
+  for (const s of FRIDGE_STATUSES) {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    if (s === record.status) opt.selected = true;
+    statusSelect.appendChild(opt);
+  }
+  statusSelect.addEventListener("change", async () => {
+    await updateFridgeStatus(record.id, statusSelect.value, record);
+  });
+
+  const main = document.createElement("div");
+  main.className = "record-main";
+
+  const desc = document.createElement("div");
+  desc.className = "record-desc";
+  desc.textContent = record.description;
+  desc.addEventListener("click", () => {
+    if (state.busy) return;
+    renderEditState("fridge", record, main);
+  });
+
+  const meta = document.createElement("div");
+  meta.className = "record-meta";
+  const when = toLocalDateLabel(record.createdAt);
+  meta.textContent = `Author: ${record.owner}${when ? ` | Created: ${when}` : ""}`;
+
+  main.append(desc, meta);
+  li.append(statusSelect, main);
+  return li;
+}
+
 function renderEditState(tab, record, targetNode) {
   targetNode.innerHTML = "";
 
@@ -260,8 +331,8 @@ function renderEditState(tab, record, targetNode) {
 }
 
 function renderList(tab) {
-  const listNode = tab === "shopping" ? el.shoppingList : el.todoList;
-  const emptyNode = tab === "shopping" ? el.shoppingEmpty : el.todoEmpty;
+  const listNode = tab === "shopping" ? el.shoppingList : tab === "todo" ? el.todoList : el.fridgeList;
+  const emptyNode = tab === "shopping" ? el.shoppingEmpty : tab === "todo" ? el.todoEmpty : el.fridgeEmpty;
   const records = state.records[tab];
 
   listNode.innerHTML = "";
@@ -272,13 +343,14 @@ function renderList(tab) {
 
   setHidden(emptyNode, true);
   for (const record of records) {
-    listNode.appendChild(buildRecordItem(tab, record));
+    listNode.appendChild(tab === "fridge" ? buildFridgeItem(record) : buildRecordItem(tab, record));
   }
 }
 
 function renderAll() {
   renderList("shopping");
   renderList("todo");
+  renderList("fridge");
 }
 
 async function createRecord(tab, formData) {
@@ -304,6 +376,39 @@ async function createRecord(tab, formData) {
     });
 
     (tab === "shopping" ? el.shoppingAddForm : el.todoAddForm).reset();
+    setStatus("Synced");
+    await loadRecords();
+  } catch (error) {
+    console.error(error);
+    setStatus("Offline");
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function createFridgeRecord(formData) {
+  const owner = (formData.get("owner") || "").toString().trim();
+  const description = (formData.get("description") || "").toString().trim();
+  const status = (formData.get("status") || "In Fridge").toString().trim();
+  if (!description || !APP_CONFIG.owners.includes(owner)) {
+    return;
+  }
+
+  setBusy(true, "Saving");
+  try {
+    const now = new Date().toISOString();
+    await apiRequest("createRecord", {
+      listType: "fridge",
+      record: {
+        description,
+        owner,
+        status,
+        createdAt: now,
+        updatedAt: now
+      }
+    });
+
+    el.fridgeAddForm.reset();
     setStatus("Synced");
     await loadRecords();
   } catch (error) {
@@ -369,6 +474,38 @@ async function completeRecord(tab, id) {
   }
 }
 
+async function updateFridgeStatus(id, newStatus, record) {
+  const wasUsed = newStatus === "Used";
+  if (wasUsed) {
+    state.records.fridge = state.records.fridge.filter((item) => item.id !== id);
+    renderList("fridge");
+  }
+
+  setBusy(true, "Saving");
+  try {
+    await apiRequest("updateRecord", {
+      listType: "fridge",
+      id,
+      updates: {
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+      }
+    });
+
+    setStatus("Synced");
+    await loadRecords();
+  } catch (error) {
+    console.error(error);
+    if (wasUsed) {
+      state.records.fridge = sortFridgeRecords([...state.records.fridge, record]);
+      renderList("fridge");
+    }
+    setStatus("Offline");
+  } finally {
+    setBusy(false);
+  }
+}
+
 function wireEvents() {
   el.gateForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -397,10 +534,8 @@ function wireEvents() {
     }
   });
 
-  el.tabButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      togglePanel(button.dataset.tab);
-    });
+  el.tabSelect.addEventListener("change", () => {
+    togglePanel(el.tabSelect.value);
   });
 
   el.shoppingToggleAdd.addEventListener("click", () => {
@@ -411,6 +546,10 @@ function wireEvents() {
     setHidden(el.todoAddForm, !el.todoAddForm.hidden);
   });
 
+  el.fridgeToggleAdd.addEventListener("click", () => {
+    setHidden(el.fridgeAddForm, !el.fridgeAddForm.hidden);
+  });
+
   el.shoppingAddForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     await createRecord("shopping", new FormData(el.shoppingAddForm));
@@ -419,6 +558,11 @@ function wireEvents() {
   el.todoAddForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     await createRecord("todo", new FormData(el.todoAddForm));
+  });
+
+  el.fridgeAddForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await createFridgeRecord(new FormData(el.fridgeAddForm));
   });
 }
 

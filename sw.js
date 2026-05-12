@@ -1,4 +1,4 @@
-const CACHE_NAME = "family-lists-v1";
+const CACHE_NAME = "family-lists-v2";
 const APP_SHELL_FILES = [
   "./",
   "./index.html",

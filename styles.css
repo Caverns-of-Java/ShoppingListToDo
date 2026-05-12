@@ -147,20 +147,11 @@ button:disabled {
 
 .tabs {
   margin-top: 14px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
 }
 
-.tab-button {
-  border: 1px solid #b7cab9;
-  background: #f5faf2;
-  color: var(--ink);
-}
-
-.tab-button.active {
-  border-color: #7ca987;
-  background: #d8ead9;
+.tab-select {
+  width: 100%;
+  font-weight: 700;
 }
 
 .panel {
@@ -210,6 +201,14 @@ button:disabled {
   border: 1px solid #d8e5d8;
   border-radius: 12px;
   background: #ffffff;
+}
+
+.fridge-status-select {
+  width: auto;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  align-self: center;
 }
 
 .record-main {

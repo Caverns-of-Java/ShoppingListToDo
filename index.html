@@ -14,7 +14,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.svg" />
-    <link rel="stylesheet" href="styles.css?v=20260512a" />
+    <link rel="stylesheet" href="styles.css?v=20260513a" />
   </head>
   <body>
     <main class="app-shell">
@@ -29,15 +29,18 @@
         <p id="gate-error" class="error-text" role="alert" aria-live="polite"></p>
       </section>
 
-      <section id="app" class="app-card hidden" aria-label="Shopping List and To Do app" hidden>
+      <section id="app" class="app-card hidden" aria-label="Family Lists app" hidden>
         <header class="app-header">
           <h1>Family Lists</h1>
           <span id="status-chip" class="status-chip synced" role="status" aria-live="polite">Synced</span>
         </header>
 
         <nav class="tabs" aria-label="List sections">
-          <button class="tab-button active" data-tab="shopping" type="button">Shopping List side</button>
-          <button class="tab-button" data-tab="todo" type="button">To Do checklist side</button>
+          <select id="tab-select" class="tab-select" aria-label="Select section">
+            <option value="shopping">Shopping List</option>
+            <option value="todo">To Do</option>
+            <option value="fridge">What's in the Fridge</option>
+          </select>
         </nav>
 
         <section class="panel" data-panel="shopping">
@@ -85,9 +88,41 @@
           <ul id="todo-list" class="record-list" aria-live="polite"></ul>
           <p id="todo-empty" class="empty-text hidden" hidden>No active to do items.</p>
         </section>
+
+        <section class="panel hidden" data-panel="fridge" hidden>
+          <div class="panel-top">
+            <h2>What's in the Fridge</h2>
+            <button id="fridge-toggle-add" class="btn-clear" type="button">Add item</button>
+          </div>
+          <form id="fridge-add-form" class="add-form hidden" autocomplete="off" hidden>
+            <label>
+              Author
+              <select name="owner" required>
+                <option value="Ken">Ken</option>
+                <option value="Ethan">Ethan</option>
+              </select>
+            </label>
+            <label>
+              Description
+              <input name="description" type="text" maxlength="240" required />
+            </label>
+            <label>
+              Status
+              <select name="status" required>
+                <option value="In Fridge">In Fridge</option>
+                <option value="Freezer">Freezer</option>
+                <option value="Pantry">Pantry</option>
+                <option value="Ready to Eat">Ready to Eat</option>
+              </select>
+            </label>
+            <button type="submit">Save</button>
+          </form>
+          <ul id="fridge-list" class="record-list" aria-live="polite"></ul>
+          <p id="fridge-empty" class="empty-text hidden" hidden>Nothing in the fridge.</p>
+        </section>
       </section>
     </main>
 
-    <script src="app.js?v=20260512a"></script>
+    <script src="app.js?v=20260513a"></script>
   </body>
 </html>
