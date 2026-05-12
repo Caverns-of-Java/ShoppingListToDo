@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#2f7d44" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Family Lists" />
+    <title>Shopping List and To Do</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+    <link rel="stylesheet" href="styles.css?v=20260512a" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="gate" class="gate-card" aria-labelledby="gate-title">
+        <h1 id="gate-title">Family Lists</h1>
+        <p>Enter passcode to continue.</p>
+        <form id="gate-form" class="gate-form">
+          <label for="passcode">Passcode</label>
+          <input id="passcode" name="passcode" type="password" inputmode="numeric" autocomplete="off" required />
+          <button type="submit">Unlock</button>
+        </form>
+        <p id="gate-error" class="error-text" role="alert" aria-live="polite"></p>
+      </section>
+
+      <section id="app" class="app-card hidden" aria-label="Shopping List and To Do app" hidden>
+        <header class="app-header">
+          <h1>Family Lists</h1>
+          <span id="status-chip" class="status-chip synced" role="status" aria-live="polite">Synced</span>
+        </header>
+
+        <nav class="tabs" aria-label="List sections">
+          <button class="tab-button active" data-tab="shopping" type="button">Shopping List side</button>
+          <button class="tab-button" data-tab="todo" type="button">To Do checklist side</button>
+        </nav>
+
+        <section class="panel" data-panel="shopping">
+          <div class="panel-top">
+            <h2>Shopping List</h2>
+            <button id="shopping-toggle-add" class="btn-clear" type="button">Add item</button>
+          </div>
+          <form id="shopping-add-form" class="add-form hidden" autocomplete="off" hidden>
+            <label>
+              Author
+              <select name="owner" required>
+                <option value="Ken">Ken</option>
+                <option value="Ethan">Ethan</option>
+              </select>
+            </label>
+            <label>
+              Description
+              <input name="description" type="text" maxlength="240" required />
+            </label>
+            <button type="submit">Save</button>
+          </form>
+          <ul id="shopping-list" class="record-list" aria-live="polite"></ul>
+          <p id="shopping-empty" class="empty-text hidden" hidden>No active shopping items.</p>
+        </section>
+
+        <section class="panel hidden" data-panel="todo" hidden>
+          <div class="panel-top">
+            <h2>To Do</h2>
+            <button id="todo-toggle-add" class="btn-clear" type="button">Add item</button>
+          </div>
+          <form id="todo-add-form" class="add-form hidden" autocomplete="off" hidden>
+            <label>
+              Assigned
+              <select name="owner" required>
+                <option value="Ken">Ken</option>
+                <option value="Ethan">Ethan</option>
+              </select>
+            </label>
+            <label>
+              Description
+              <input name="description" type="text" maxlength="240" required />
+            </label>
+            <button type="submit">Save</button>
+          </form>
+          <ul id="todo-list" class="record-list" aria-live="polite"></ul>
+          <p id="todo-empty" class="empty-text hidden" hidden>No active to do items.</p>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js?v=20260512a"></script>
+  </body>
+</html>
